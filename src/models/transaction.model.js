@@ -16,7 +16,7 @@ const transactionSchema=new mongoose.Schema({
         type:String,
         enum:{
             values:["PENDING", "FAILED", "REVERSED", "COMPLETED"],
-            message:"Only this are valid options"
+            message:"Only these are valid options"
         },
         default:"PENDING",
     },

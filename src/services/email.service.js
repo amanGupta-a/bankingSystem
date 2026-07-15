@@ -43,8 +43,8 @@ async function sendRegistrationEmail(userEmail, name){
     \n\n
     Best Regards from Backend Ledger`;
     const html=`
-    <p>Hello ${name}, \n\n Thank You for registering at Backend Ledger.
-    \n\n
+    <p>Hello ${name},</p><p> Thank You for registering at Backend Ledger.</p>
+    <p>
     Best Regards from Backend Ledger
     </p>
     `
@@ -52,9 +52,9 @@ async function sendRegistrationEmail(userEmail, name){
 }
 
 async function sendTransactionSuccessMail(userEmail, name, Amount, toAccount){
-  const subject="Transactions successful",
+  const subject="Transactions successful";
   const text=`Hello ${name}, \n\n your transaction for amount ${Amount} to account ${toAccount} has been completed.
-  \n\n If NOT DONE BY YOU contact us`,
+  \n\n If NOT DONE BY YOU contact us`;
   const html=`<p>Hello ${name}, </p> 
   <p>your transaction for amount ${Amount} to account ${toAccount} has been completed.</p>
   <p>If NOT DONE BY YOU contact us</p>`
@@ -62,9 +62,9 @@ async function sendTransactionSuccessMail(userEmail, name, Amount, toAccount){
 }
 
 async function sendTransactionFailMail(userEmail, name, Amount, toAccount){
-  const subject="Transactions Failed",
+  const subject="Transactions Failed";
   const text=`Hello ${name}, \n\n your transaction for amount ${Amount} to account ${toAccount} is FAILED.
-  \n\n Deducted amount will be reversed`,
+  \n\n Deducted amount will be reversed`;
   const html=`<p>Hello ${name}, </p> 
   <p>your transaction for amount ${Amount} to account ${toAccount} is Failed.</p>
   <p>Deducted amount will be reversed</p>`
