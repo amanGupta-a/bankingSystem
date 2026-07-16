@@ -2,6 +2,12 @@ const accountModel=require("../models/accounts.model")
 
 async function createAccountController(req, res){
     const user=req.user;
+    const found=await accountModel.findOne({user:user._id});
+    if(found){
+        return res.status(403).json({
+            message:"User already have account"
+        })
+    }
     const newAccount=await accountModel.create({
         user:user._id
     })
