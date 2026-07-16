@@ -1,7 +1,7 @@
 const userModel=require("../models/user.model");
 const jwt=require("jsonwebtoken");
 async function authMiddleware(req, res, next){
-    const token=req.cookies.token|| req.header.authorization?.split(" ")[1];
+    const token=req.cookies.token|| req.headers.authorization?.split(" ")[1];
     if(!token){
         return res.status(401).json({
             message:"Invalid token, seems to be logged out"
@@ -18,10 +18,32 @@ async function authMiddleware(req, res, next){
     catch(err){
         return res.status(401).json({message:"unauthorized access"})
     }
-
-
 }
 
+async function authSystemUserMiddleware(req, res, next){
+    const token=req.cookies.token || req.headers.authorization.split(" ")[1];
+    if(!token){
+        return res.status(401).json({
+            message:"Invalid token, unauthorized access"
+        })
+    }
+    try{
+        const decoded=jwt.verify(token, process.env.jwt_secret_key);
+        const user=await userModel.findOne({_id:decoded.userId}).select("+systemUser -password")
+        if(!user) return res.status(401).json({message:"Invalid user"});
+        if(!user.systemUser){
+            return res.status(403).json({
+                message:"forbidden access"
+            })
+        }
+        req.user=user;
+        return next();
+    }
+    catch(err){
+        return res.status(401).json({message:"unauthorized access"})
+    }
+}
 module.exports={
-    authMiddleware
+    authMiddleware,
+    authSystemUserMiddleware,
 }

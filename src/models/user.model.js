@@ -17,6 +17,12 @@ const userSchema=new mongoose.Schema({
         type:String,
         required:[true, "necessary"],
         minLength:[6, "atleast 6 char should be there"]
+    },
+    systemUser:{
+        type:Boolean,
+        default:false,
+        immutable:true,
+        select:false,
     }
 }, {timestamps:true})
 userSchema.pre("save", async function(){
