@@ -24,6 +24,7 @@ transporter.verify((error, success) => {
 // Function to send email
 const sendEmail = async (to, subject, text, html) => {
   try {
+    console.log('Attempting to send email to:', to, 'subject:', subject);
     const info = await transporter.sendMail({
       from: `"Backend Ledger " <${process.env.EMAIL_USER}>`, // sender address
       to, // list of receivers
@@ -32,9 +33,9 @@ const sendEmail = async (to, subject, text, html) => {
       html, // html body
     });
     console.log('Message sent: %s', info.messageId);
-    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
   } catch (error) {
     console.error('Error sending email:', error);
+    throw error;
   }
 };
 async function sendRegistrationEmail(userEmail, name){
@@ -53,26 +54,40 @@ async function sendRegistrationEmail(userEmail, name){
 
 async function sendTransactionSuccessMail(userEmail, name, Amount, toAccount){
   const subject="Transactions successful";
-  const text=`Hello ${name}, \n\n your transaction for amount ${Amount} to account ${toAccount} has been completed.
-  \n\n If NOT DONE BY YOU contact us`;
+  const text=`Hello, dear ${name}, \n\n your transaction for amount ${Amount} is credited to account ${toAccount} .
+  \n\n If NOT DONE BY YOU contact us @1234`;
   const html=`<p>Hello ${name}, </p> 
-  <p>your transaction for amount ${Amount} to account ${toAccount} has been completed.</p>
-  <p>If NOT DONE BY YOU contact us</p>`
+  <p>your transaction for amount ${Amount} is credited to account ${toAccount} .</p>
+  <p>If NOT DONE BY YOU contact us @1234</p>`
   await sendEmail(userEmail, subject,text, html);
 }
 
 async function sendTransactionFailMail(userEmail, name, Amount, toAccount){
   const subject="Transactions Failed";
   const text=`Hello ${name}, \n\n your transaction for amount ${Amount} to account ${toAccount} is FAILED.
-  \n\n Deducted amount will be reversed`;
+  \n\n Deducted amount (if any) will be reversed`;
   const html=`<p>Hello ${name}, </p> 
   <p>your transaction for amount ${Amount} to account ${toAccount} is Failed.</p>
-  <p>Deducted amount will be reversed</p>`
+  <p>Deducted amount(if any) will be reversed</p>`
+  await sendEmail(userEmail, subject,text, html);
+}
+
+async function sendTransactionSuccessAdminMail(userEmail, name, Amount, toAccount){
+  const subject="Amount credited from branch";
+  const text=`Hello ${name}, \n\n transaction of amount ${Amount} to your account ${toAccount} is completed
+  , CASH DEPOSITED.
+  \n\n Thank you for banking with us`;
+
+  const html=`<p>Hello ${name}, </p> 
+  <p>transaction of amount ${Amount} to your account ${toAccount} is completed.</p>
+  <p>CASH DEPOSITED at BRANCH</p>
+  <p>Thank you for banking with us </p>`;
   await sendEmail(userEmail, subject,text, html);
 }
 
 module.exports = {
     sendRegistrationEmail,
     sendTransactionFailMail,
-    sendTransactionSuccessMail
+    sendTransactionSuccessMail,
+    sendTransactionSuccessAdminMail
 }

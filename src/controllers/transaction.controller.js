@@ -1,8 +1,9 @@
-const transactionModel=require("../models/transaction.model")
-const ledgerModel=require("../models/ledger.model")
-const accountModel=require("../models/accounts.model")
-const emailService=require("../services/email.service")
-const mongoose=require("mongoose")
+const transactionModel=require("../models/transaction.model");
+const ledgerModel=require("../models/ledger.model");
+const accountModel=require("../models/accounts.model");
+const emailService=require("../services/email.service");
+const userModel=require("../models/user.model");
+const mongoose=require("mongoose");
 
 async function createTransaction(req, res) {
 
@@ -102,7 +103,11 @@ async function createTransaction(req, res) {
             message: "Transaction is Pending due to some issue, please retry after sometime",
         })
     }
-    await emailService.sendTransactionSuccessMail(req.user.email, req.user.name, amount, sender._id);
+    try {
+        await emailService.sendTransactionSuccessMail(req.user.email, req.user.name, amount, sender._id);
+    } catch (error) {
+        console.error('Success email failed for transaction:', error);
+    }
     return res.status(201).json({
         message: "Transaction completed Successfully",
         transaction: updatedTrnxn,
@@ -123,7 +128,7 @@ async function createInitialFundsTransaction(req, res){
 
     const fromUserAccount=await accountModel.findOne({user:req.user._id});
     if(!fromUserAccount){
-        return res.status(400).json({message:"Invalid fromAccount"});
+        return res.status(400).json({message:"Invalid from Account"});
     }
 const session = await mongoose.startSession();
     session.startTransaction();
@@ -153,7 +158,13 @@ const session = await mongoose.startSession();
         await transaction.save({ session });
     await session.commitTransaction();
     session.endSession();
-
+    const user=await userModel.findOne({_id:toUserAccount.user});
+    try {
+        await emailService.sendTransactionSuccessAdminMail(user.email, user.name, amount, toAccount);
+        console.log("Email for successful transaction sent")
+    } catch (error) {
+    console.error("Admin email failed:", error);
+    }
     return res.status(201).json({
         message: "Initial fund transfer transaction completed successfully",
         transaction: transaction,
