@@ -20,15 +20,19 @@ const userRegisterController=async(req, res)=>{
         httpOnly:true,
         maxAge:3*24*60*60*1000,
     });
-    res.status(201).json({
+    try {
+        await emailService.sendRegistrationEmail(user.email, user.name)
+    } catch (error) {
+        console.error("Registration email failed:", error)
+    }
+
+    return res.status(201).json({
         user:{
             userId:user._id,
             name:user.name,
             email:user.email,
         }
     })
-
-    await emailService.sendRegistrationEmail(user.email, user.name)
 }
 
 const userLoginController=async(req, res)=>{
