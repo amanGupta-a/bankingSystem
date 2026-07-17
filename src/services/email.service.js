@@ -24,7 +24,6 @@ transporter.verify((error, success) => {
 // Function to send email
 const sendEmail = async (to, subject, text, html) => {
   try {
-    console.log('Attempting to send email to:', to, 'subject:', subject);
     const info = await transporter.sendMail({
       from: `"Backend Ledger " <${process.env.EMAIL_USER}>`, // sender address
       to, // list of receivers
@@ -32,9 +31,7 @@ const sendEmail = async (to, subject, text, html) => {
       text, // plain text body
       html, // html body
     });
-    console.log('Message sent: %s', info.messageId);
   } catch (error) {
-    console.error('Error sending email:', error);
     throw error;
   }
 };
