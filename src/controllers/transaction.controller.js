@@ -1,8 +1,8 @@
 const transactionModel=require("../models/transaction.model");
 const ledgerModel=require("../models/ledger.model");
 const accountModel=require("../models/accounts.model");
+const userModel=require("../models/user.model")
 const emailService=require("../services/email.service");
-const userModel=require("../models/user.model");
 const mongoose=require("mongoose");
 
 async function createTransaction(req, res) {
@@ -27,7 +27,7 @@ async function createTransaction(req, res) {
     if (isTransactionsExists) {
         if (isTransactionsExists.status === "COMPLETED") {
             return res.status(200).json({
-                message: "Transaction Completed, success"
+                message: "Transaction already exists, success"
             })
         }
         if (isTransactionsExists.status === "PENDING") {
@@ -80,9 +80,6 @@ async function createTransaction(req, res) {
         type: "DEBIT"
     }], { session });
     //if there is some network delay
-    await (()=>{
-        return new Promise((resolve)=>setTimeout(resolve, 15*1000))
-    })();
     const creditLedgerEntry = await ledgerModel.create([{
         account: receiver,
         amount,
@@ -109,7 +106,11 @@ async function createTransaction(req, res) {
         })
     }
     try {
-        await emailService.sendTransactionSuccessMail(req.user.email, req.user.name, amount, sender._id);
+        const receiverUser=await userModel.findOne({_id:receiver.user});
+        const senderBalance = await sender.getBalance();
+        const receiverBalance=await receiver.getBalance();
+        await emailService.sendTransactionSuccessToSender(req.user.email, req.user.name, amount, fromAccount, toAccount,senderBalance);
+        await emailService.sendTransactionSuccessToReceiver(receiverUser.email, receiverUser.name, amount, fromAccount, toAccount,receiverBalance );
     } catch (error) {
         console.error('Success email failed for transaction:', error);
     }
@@ -166,7 +167,8 @@ async function createInitialFundsTransaction(req, res){
     session.endSession();
     const user=await userModel.findOne({_id:toUserAccount.user});
     try {
-        await emailService.sendTransactionSuccessAdminMail(user.email, user.name, amount, toAccount);
+        const availableBalance= await toUserAccount.getBalance();
+        await emailService.sendTransactionSuccessAdminMail(user.email, user.name, amount, toAccount,availableBalance);
         console.log("Email for successful transaction sent")
     } catch (error) {
     console.error("Admin email failed:", error);
@@ -175,5 +177,10 @@ async function createInitialFundsTransaction(req, res){
         message: "Initial fund transfer transaction completed successfully",
         transaction: transaction,
     })
+    } catch (error) {
+        return res.status(400).json({
+            message: "Initial fund transfer transaction failed"
+        })
+    }
 }
-module.exports={createTransaction, createInitialFundsTransaction}
+module.exports={createTransaction, createInitialFundsTransaction};

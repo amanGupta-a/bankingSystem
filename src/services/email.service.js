@@ -49,14 +49,34 @@ async function sendRegistrationEmail(userEmail, name){
     await sendEmail(userEmail,subject, text,html);
 }
 
-async function sendTransactionSuccessMail(userEmail, name, Amount, toAccount){
+async function sendTransactionSuccessToSender(userEmail, name, Amount,fromAccount, toAccount, balance){
   const subject="Transactions successful";
   const text=`Hello, dear ${name}, \n\n your transaction for amount ${Amount} is credited to account ${toAccount} .
+  \n\n Available balance in your account ${fromAccount} is ${balance}.
   \n\n If NOT DONE BY YOU contact us @1234`;
   const html=`<p>Hello ${name}, </p> 
   <p>your transaction for amount ${Amount} is credited to account ${toAccount} .</p>
+  <p>Available balance in your account ${fromAccount} is ${balance}</p>
   <p>If NOT DONE BY YOU contact us @1234</p>`
+  console.log("sendTransactionSuccessToSender")
+  console.log(text);
   await sendEmail(userEmail, subject,text, html);
+  console.log("mail sent to sender successfully")
+}
+
+async function sendTransactionSuccessToReceiver(userEmail, name, Amount,fromAccount, toAccount, balance){
+  const subject="Transactions successful";
+  const text=`Hello, dear ${name}, \n\n your account ${toAccount} is credited by ${Amount} .
+  \n\n from ${fromAccount}.
+  \n\n Available balance in your account is ${balance}.`
+  const html=`<p>Hello ${name}, </p> 
+  <p>our account ${toAccount} is debited by ${Amount}.</p>
+  <p>from ${fromAccount}</p>
+  <p>Available balance in your account is ${balance}</p>`
+  console.log("in sendTransactionSuccessToRec");
+  console.log(text);
+  await sendEmail(userEmail, subject,text, html);
+  console.log("mail sent to receiver")
 }
 
 async function sendTransactionFailMail(userEmail, name, Amount, toAccount){
@@ -69,15 +89,17 @@ async function sendTransactionFailMail(userEmail, name, Amount, toAccount){
   await sendEmail(userEmail, subject,text, html);
 }
 
-async function sendTransactionSuccessAdminMail(userEmail, name, Amount, toAccount){
+async function sendTransactionSuccessAdminMail(userEmail, name, Amount, toAccount, availableBalance){
   const subject="Amount credited from branch";
   const text=`Hello ${name}, \n\n transaction of amount ${Amount} to your account ${toAccount} is completed
-  , CASH DEPOSITED.
+  , CASH DEPOSITED at branch.
+  \n\n available balance is ${availableBalance};
   \n\n Thank you for banking with us`;
 
   const html=`<p>Hello ${name}, </p> 
   <p>transaction of amount ${Amount} to your account ${toAccount} is completed.</p>
   <p>CASH DEPOSITED at BRANCH</p>
+  <p> available balance is ${availableBalance} </p>
   <p>Thank you for banking with us </p>`;
   await sendEmail(userEmail, subject,text, html);
 }
@@ -85,6 +107,7 @@ async function sendTransactionSuccessAdminMail(userEmail, name, Amount, toAccoun
 module.exports = {
     sendRegistrationEmail,
     sendTransactionFailMail,
-    sendTransactionSuccessMail,
+    sendTransactionSuccessToSender,
+    sendTransactionSuccessToReceiver,
     sendTransactionSuccessAdminMail
 }
