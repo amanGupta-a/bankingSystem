@@ -10,4 +10,7 @@ app.use(express.urlencoded({extended:true}));
 app.use("/api/auth", authRoute);
 app.use("/api/accounts", accountRoute)
 app.use("/api/transactions",transactionRoute)
+app.get("/", (req, res)=>{
+    res.send("Ledger service is running up")
+})
 module.exports =app;
