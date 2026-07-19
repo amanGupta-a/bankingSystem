@@ -148,7 +148,5 @@ This endpoint supports idempotency and status handling, including `COMPLETED`, `
 - `src/middleware/` - JWT authentication middleware
 - `src/services/` - email notification service
 
-## License
-
-## Deployed using render at
+## Live Demo
 [text](https://backend-based-ledger-system.onrender.com)
