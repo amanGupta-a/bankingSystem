@@ -1,44 +1,59 @@
-# Banking System API
+# Ledger-based Banking API
 
-A Node.js / Express backend for a simple banking ledger system with user authentication, account management, and transaction processing.
+A Node.js / Express REST API for a ledger-based banking system with JWT authentication, account management, and atomic money transfers. Balances are never stored directly — they're derived from an immutable double-entry ledger, so every transaction leaves a verifiable audit trail.
+
+**Live demo:** https://backend-based-ledger-system.onrender.com
 
 ## Features
 
-- User registration, login, and logout
-- JWT-based authentication with cookie support
-- Account creation and balance lookup
-- Transaction creation with idempotency handling
-- Initial funds transfer endpoint for system users
-- Email notifications for registration and transaction events
-- MongoDB database storage via Mongoose
+- Registration, login, and logout with JWT (httpOnly cookie or `Authorization: Bearer` header)
+- Token blacklisting on logout, with automatic TTL expiry (3 days)
+- One account per user, with `ACTIVE` / `FROZEN` / `CLOSED` status
+- Double-entry ledger: every transaction writes a `DEBIT` and a `CREDIT` entry; account balance is computed by aggregation, not stored
+- Idempotent transaction creation via a required `idempotencyKey`, with `PENDING` / `COMPLETED` / `FAILED` / `REVERSED` status tracking
+- MongoDB sessions/transactions to keep the transaction record and both ledger entries atomic
+- System-user-only endpoint for seeding initial funds into an account
+- Email notifications (registration, transaction success/failure ) via Nodemailer over Gmail OAuth2
 
-## Technologies
+## Tech stack
 
-- Node.js
-- Express
-- MongoDB / Mongoose
-- bcrypt
-- JSON Web Tokens (`jsonwebtoken`)
-- Nodemailer
-- dotenv
+Node.js, Express 5, MongoDB / Mongoose, JWT (`jsonwebtoken`), bcrypt, Nodemailer, dotenv
 
-## Getting Started
+## Project structure
+
+```
+server.js              # entrypoint: loads env, connects DB, starts server
+src/
+  app.js                # Express app, middleware, route mounting
+  config/db.js           # MongoDB connection
+  routes/                # auth, account, transaction routes
+  controllers/            # request handlers / business logic
+  models/                  # user, account, transaction, ledger, tokenBlackList schemas
+  middleware/              # JWT auth (regular + system-user)
+  services/                # email notifications
+```
+
+## Getting started
 
 ### Prerequisites
 
-- Node.js 18+ installed
-- MongoDB instance available
-- Gmail OAuth2 credentials configured for sending email
+- Node.js 18+
+- A MongoDB instance
+- Gmail OAuth2 credentials (for email notifications)
 
-### Install dependencies
+### Install & run
 
 ```bash
 npm install
+npm start        # production
+npm run dev       # development, auto-reload via nodemon
 ```
 
-### Environment Variables
+The server listens on port `3000` (hardcoded in `server.js`).
 
-Create a `.env` file at the project root and provide the following values:
+### Environment variables
+
+Create a `.env` file at the project root:
 
 ```env
 PORT=3000
@@ -50,105 +65,39 @@ CLIENT_SECRET=your_gmail_oauth_client_secret
 REFRESH_TOKEN=your_gmail_oauth_refresh_token
 ```
 
-### Run the app
+## API reference
 
-```bash
-npm start
-```
+All routes are prefixed with `/api`. Endpoints marked **Auth** require a valid JWT (cookie or bearer token).
 
-For development with automatic reload:
+### Auth — `/api/auth`
 
-```bash
-npm run dev
-```
+| Method | Endpoint    | Body                             | Notes                                 |
+| ------ | ----------- | -------------------------------- | --------------------------------------|
+| POST   | `/register` | `email`, `name`, `password`      | Sets JWT cookie, sends welcome email  |
+| POST   | `/login`    | `email`, `password`              | Sets JWT cookie                       |
+| POST   | `/logout`   | —                                | Blacklists the current token          |
 
-The server listens on port `3000` by default.
+### Accounts — `/api/accounts` (Auth)
 
-## API Endpoints
+| Method | Endpoint                | Notes                                         |
+| ------ | ----------------------- | ----------------------------------------------|
+| POST   | `/newAccount`           | Create Account (only once)                    |
+| GET    | `/accountInfo`          | Lists the caller's accounts                   |
+| GET    | `/balance/:accountId`   | Computed from ledger entries; ownership-checked|
 
-### Authentication
+### Transactions — `/api/transactions`
 
-#### Register
-
-- URL: `POST /api/auth/register`
-- Body:
-  - `email` (string)
-  - `name` (string)
-  - `password` (string)
-
-#### Login
-
-- URL: `POST /api/auth/login`
-- Body:
-  - `email` (string)
-  - `password` (string)
-
-#### Logout
-
-- URL: `POST /api/auth/logout`
-- Authentication: cookie or `Authorization: Bearer <token>`
-
-### Accounts
-
-All account endpoints require authentication via cookie or bearer token.
-
-#### Create account
-
-- URL: `POST /api/accounts/create`
-- Creates a new account for the authenticated user.
-
-#### Get user accounts
-
-- URL: `GET /api/accounts/accountInfo`
-- Returns all accounts belonging to the authenticated user.
-
-#### Get account balance
-
-- URL: `GET /api/accounts/balance/:accountId`
-- Returns the balance for the specified account if the authenticated user owns it.
-
-### Transactions
-
-All transaction endpoints require authentication.
-
-#### Create transaction
-
-- URL: `POST /api/transactions/`
-- Body:
-  - `fromAccount` (account ID)
-  - `toAccount` (account ID)
-  - `amount` (number)
-  - `idempotencyKey` (string)
-
-This endpoint supports idempotency and status handling, including `COMPLETED`, `PENDING`, `FAILED`, and `REVERSED`.
-
-#### Create initial funds transaction
-
-- URL: `POST /api/transactions/system/initial-funds`
-- Body:
-  - `toAccount` (account ID)
-  - `amount` (number)
-  - `idempotencyKey` (string)
-- Requires a system user authenticated token.
+| Method | Endpoint                 | Auth              | Body                                                               |
+| ------ | ------------------------ | ------------------ | ---------------------------------------------------------------- |
+| POST   | `/`                      | Regular user       | `fromAccount`, `toAccount`, `amount`, `idempotencyKey`           |
+| POST   | `/system/initial-funds`  | System user only   | `toAccount`, `amount`, `idempotencyKey`                         |
 
 ## Notes
 
-- The app uses JWTs stored in `token` cookies and also accepts the token in `Authorization` headers.
-- The email service is configured for Gmail OAuth2 via `nodemailer`.
-- User passwords are hashed with `bcrypt` before storing in MongoDB.
+- Passwords are hashed with bcrypt before storage; the `password` field is excluded from query results by default.
+- `systemUser` accounts are a hidden, immutable flag on the user model — required for the initial-funds endpoint.
+- Ledger entries are immutable at the schema level: any update/delete operation on them throws.
 
-## Project Structure
+## License
 
-- `server.js` - app entrypoint
-- `src/app.js` - Express app configuration and routes
-- `src/config/db.js` - MongoDB connection
-- `src/routes/` - route definitions
-- `src/controllers/` - request handlers
-- `src/models/` - Mongoose schemas
-- `src/middleware/` - JWT authentication middleware
-- `src/services/` - email notification service
-
-## License 
 ISC
-
-## [Demo](https://backend-based-ledger-system.onrender.com)
